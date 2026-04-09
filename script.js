@@ -24,6 +24,19 @@ const modelPhoto = document.getElementById('modelPhoto');
 const modelOnline = document.getElementById('modelOnline');
 const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
 
+// Image preview handler
+modelPhoto.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
 // Variables globales
 let currentEditingId = null;
 let allModels = [];
@@ -176,6 +189,12 @@ modelForm.addEventListener('submit', async (e) => {
     const token = getToken();
     if (!token) { alert('Debes iniciar sesion'); return; }
 
+    // Get submit button and show loading state
+    const submitBtn = modelForm.querySelector('[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Guardando...';
+
     // Construir datos del modelo
     const modelData = {
         nombre: modelName.value.trim(),
@@ -190,11 +209,13 @@ modelForm.addEventListener('submit', async (e) => {
     // Procesar foto si se seleccionó
     if (modelPhoto.files.length > 0) {
         const file = modelPhoto.files[0];
-        if (file.size > 2 * 1024 * 1024) { alert('La imagen es muy grande (max 2MB)'); return; }
+        if (file.size > 2 * 1024 * 1024) { alert('La imagen es muy grande (max 2MB)'); submitBtn.disabled = false; submitBtn.textContent = originalText; return; }
         try {
             modelData.foto = await fileToBase64(file);
         } catch (err) {
             alert('Error al procesar la imagen');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
             return;
         }
     }
@@ -219,13 +240,27 @@ modelForm.addEventListener('submit', async (e) => {
 
         if (!response.ok) {
             const err = await response.json();
-            throw new Error(err.error || 'Error al guardar');
+            throw new Error(err.error || `Error ${response.status}`);
         }
 
-        closeModalFunc();
-        renderProfiles();
+        // Éxito
+        submitBtn.textContent = '✓ Guardado!';
+        setTimeout(() => {
+            closeModalFunc();
+            renderProfiles();
+        }, 500);
+
     } catch (err) {
-        alert('Error: ' + err.message);
+        // Mostrar error en modal, no alert
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'background:#c52828;color:white;padding:12px;border-radius:4px;margin-bottom:12px;font-size:14px;';
+        errorDiv.textContent = 'Error: ' + err.message;
+        modelForm.insertBefore(errorDiv, modelForm.firstChild);
+
+        setTimeout(() => errorDiv.remove(), 5000);
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 });
 
