@@ -1,5 +1,5 @@
 // ===== CONFIGURACIÓN API =====
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
 // ===== ELEMENTOS DEL DOM =====
 const menuToggle = document.getElementById('menuToggle');
@@ -203,7 +203,7 @@ async function renderProfiles() {
             // Convertir URL relativa a absoluta (apuntar al backend)
             let imageUrl = model.foto;
             if (model.foto && model.foto.startsWith('/images/')) {
-                imageUrl = `http://localhost:5000${model.foto}`;
+                imageUrl = window.location.hostname === 'localhost' ? `http://localhost:5000${model.foto}` : model.foto;
             }
 
             // Tarjeta con datos - usando <img> en lugar de background-image
