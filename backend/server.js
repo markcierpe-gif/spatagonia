@@ -21,7 +21,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ===== MIDDLEWARE =====
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,  // El sitio usa scripts/styles inline
+    crossOriginEmbedderPolicy: false
+}));
 app.use(compression());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb' }));
