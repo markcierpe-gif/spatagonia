@@ -4,3 +4,4 @@ backend/.env
 *.log
 dist/
 .env.local
+DEPLOY-AHORA.ps1
