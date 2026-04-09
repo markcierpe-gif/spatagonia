@@ -2,6 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /login.html
-Disallow: /data.js
 
 Sitemap: https://spatagonia.onrender.com/sitemap.xml
