@@ -179,15 +179,16 @@ formDelete.addEventListener('click', () => {
 async function renderProfiles() {
     try {
         const token = sessionStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login.html';
-            return;
-        }
 
-        // Fetch modelos desde API
-        const response = await fetch(`${API_URL}/models`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // Fetch modelos desde API (pública o autenticada)
+        let response;
+        if (token) {
+            response = await fetch(`${API_URL}/models`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } else {
+            response = await fetch(`${API_URL}/models/public/all`);
+        }
 
         if (!response.ok) {
             throw new Error('No se pudieron cargar los modelos');
@@ -399,13 +400,6 @@ if ('ontouchstart' in window) {
 // ===== INICIALIZACIÓN =====
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar token antes de mostrar contenido
-    const token = sessionStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
-    }
-
-    // Cargar perfiles
+    // Cargar perfiles (cualquier visitante puede ver)
     renderProfiles();
 });
