@@ -186,8 +186,7 @@ app.get('/api/seed', async (req, res) => {
 
         await query('DELETE FROM models');
 
-        const fotos = [];
-        for (let i = 1; i <= 20; i++) fotos.push(`https://picsum.photos/seed/m${i}/400/500`);
+        const fotoUrl = '/images/modelo-400x500.jpg';
 
         const nombres = ['VALENTINA LATINA','PAOLITA Y NICOLE','LORENA APRETADITA','SOFÍA SENSUAL','JESSICA HOT','CAMILA CARIÑOSA','MARTINA LATINA','GABRIELA SEXY','LUNA JOVENCITA','ISABELLA HERMOSA','DANIELA BELLA','ROXANA PASIONAL','VANESSA COQUETA','ANDREA SENSIBLE','GLORIA ATREVIDA','KARINA BELLA','ALEJANDRA HOT','BRENDA SEXY','CYNTHIA PASIONAL','DIANA CARIÑOSA'];
         const ubicaciones = ['Punta Arenas','Punta Arenas','Punta Arenas','Punta Arenas','Punta Arenas','Puerto Natales','Puerto Natales','Puerto Natales','Puerto Natales','Puerto Natales','Porvenir','Porvenir','Porvenir','Porvenir','Porvenir','Coyhaique','Coyhaique','Coyhaique','Coyhaique','Coyhaique'];
@@ -196,7 +195,7 @@ app.get('/api/seed', async (req, res) => {
         for (let i = 0; i < 20; i++) {
             await query(
                 'INSERT INTO models (user_id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-                [userId, nombres[i], ubicaciones[i], '✨ Una experiencia HOT 🔥 para disfrutar ✨', '["Video Call","Fotos"]', fotos[i], i % 2 === 0, telefono, telefono]
+                [userId, nombres[i], ubicaciones[i], '✨ Una experiencia HOT 🔥 para disfrutar ✨', '["Video Call","Fotos"]', fotoUrl, i % 2 === 0, telefono, telefono]
             );
         }
 
