@@ -18,6 +18,9 @@ app.use(express.urlencoded({ limit: '50mb' }));
 // Servir archivos estáticos (imágenes)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
+// Servir frontend (archivos HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, '..')));
+
 // CORS configurado - permite cualquier origen para desarrollo
 app.use(cors({
     origin: '*', // En producción, cambiar a tu dominio real
