@@ -1,0 +1,26 @@
+backend/node_modules
+backend/.env
+.git
+.gitignore
+.claude
+*.log
+*.md
+update_*.js
+seed-*.js
+compress-images.js
+token.txt
+ACTUALIZACIONES.md
+"Variación 1.txt"
+036274d2-811d-4aef-89f3-03317d0bd677.jpg
+042d836d-1569-44f8-8a01-c58ae8825886.jpg
+23963949-ce72-449f-b2d7-2842d9447b83.jpg
+5c2238e8-0bbb-4c50-a639-8844b2f6fb75.jpg
+802c0737-7cbe-4be3-939d-e4b9b52d94a4.jpg
+841a96d2-6f26-4e37-84c5-45f239547883.jpg
+8a8d948e-4899-480a-a875-9e0e38ce3861.jpg
+fc0ea7ab-a23d-47be-b003-6a7a916c023d.jpg
+ff4f383f-7047-4765-a71a-8c1f96a106e4.jpg
+Femeie modernă.jpg
+Instagram model.jpg
+Modelo virtual IA con estética clean girl.jpg
+descarga*.jpg

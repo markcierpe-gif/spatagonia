@@ -38,8 +38,9 @@ app.use((req, res, next) => {
 });
 
 // CORS
+const siteUrl = process.env.SITE_URL || 'https://spatagonia.onrender.com';
 const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://spatagonia.onrender.com']
+    ? [siteUrl]
     : ['http://localhost:8000', 'http://localhost:5000', 'http://127.0.0.1:8000'];
 
 app.use(cors({
@@ -121,10 +122,11 @@ app.get('/sitemap.xml', async (req, res) => {
         const ubicaciones = result.rows.map(r => r.ubicacion);
         const now = new Date().toISOString().split('T')[0];
 
+        const baseUrl = process.env.SITE_URL || 'https://spatagonia.onrender.com';
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://spatagonia.onrender.com/</loc>
+    <loc>${baseUrl}/</loc>
     <lastmod>${now}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -133,7 +135,7 @@ app.get('/sitemap.xml', async (req, res) => {
         ubicaciones.forEach(ub => {
             xml += `
   <url>
-    <loc>https://spatagonia.onrender.com/?ubicacion=${encodeURIComponent(ub)}</loc>
+    <loc>${baseUrl}/?ubicacion=${encodeURIComponent(ub)}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
