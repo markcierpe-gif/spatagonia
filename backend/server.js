@@ -23,8 +23,8 @@ const PORT = process.env.PORT || 5000;
 // ===== MIDDLEWARE =====
 app.use(helmet());
 app.use(compression());
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb' }));
 
 // Headers de seguridad y SEO
 app.use((req, res, next) => {
@@ -180,10 +180,12 @@ app.get('/api/seed', async (req, res) => {
         let userResult = await query('SELECT id FROM users WHERE email = $1', [adminEmail]);
         let userId;
         if (userResult.rows.length === 0) {
-            userResult = await query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id', [adminEmail, hashedPassword]);
+            userResult = await query('INSERT INTO users (email, password_hash, is_admin) VALUES ($1, $2, true) RETURNING id', [adminEmail, hashedPassword]);
             userId = userResult.rows[0].id;
         } else {
             userId = userResult.rows[0].id;
+            // Asegurar que el usuario admin tenga is_admin = true
+            await query('UPDATE users SET is_admin = true WHERE id = $1', [userId]);
         }
 
         await query('DELETE FROM models');

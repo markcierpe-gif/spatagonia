@@ -4,17 +4,30 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ===== GET TODOS LOS MODELOS =====
+// ===== GET TODOS LOS MODELOS (ADMIN) =====
+// Admin ve TODOS los modelos; usuarios normales ven solo los suyos
 router.get('/', verifyToken, async (req, res) => {
     try {
-        const result = await query(
-            `SELECT id, nombre, ubicacion, descripcion, servicios,
-                    foto, en_linea, telefono, whatsapp, created_at
-             FROM models
-             WHERE user_id = $1
-             ORDER BY created_at DESC`,
-            [req.userId]
-        );
+        let result;
+        if (req.isAdmin) {
+            // Admin: todos los modelos
+            result = await query(
+                `SELECT id, nombre, ubicacion, descripcion, servicios,
+                        foto, en_linea, telefono, whatsapp, created_at
+                 FROM models
+                 ORDER BY created_at DESC`
+            );
+        } else {
+            // Usuario normal: solo los suyos
+            result = await query(
+                `SELECT id, nombre, ubicacion, descripcion, servicios,
+                        foto, en_linea, telefono, whatsapp, created_at
+                 FROM models
+                 WHERE user_id = $1
+                 ORDER BY created_at DESC`,
+                [req.userId]
+            );
+        }
 
         res.json(result.rows);
     } catch (err) {
@@ -45,13 +58,25 @@ router.get('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     try {
-        const result = await query(
-            `SELECT id, nombre, ubicacion, descripcion, servicios,
-                    foto, en_linea, telefono, whatsapp, created_at
-             FROM models
-             WHERE id = $1 AND user_id = $2`,
-            [id, req.userId]
-        );
+        let result;
+        if (req.isAdmin) {
+            // Admin puede ver cualquier modelo
+            result = await query(
+                `SELECT id, nombre, ubicacion, descripcion, servicios,
+                        foto, en_linea, telefono, whatsapp, created_at
+                 FROM models
+                 WHERE id = $1`,
+                [id]
+            );
+        } else {
+            result = await query(
+                `SELECT id, nombre, ubicacion, descripcion, servicios,
+                        foto, en_linea, telefono, whatsapp, created_at
+                 FROM models
+                 WHERE id = $1 AND user_id = $2`,
+                [id, req.userId]
+            );
+        }
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Modelo no encontrado' });
@@ -69,8 +94,14 @@ router.post('/', verifyToken, async (req, res) => {
     const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp } = req.body;
 
     // Validación
-    if (!nombre || !ubicacion || !telefono) {
-        return res.status(400).json({ error: 'Nombre, ubicación y teléfono son requeridos' });
+    if (!nombre || !nombre.trim()) {
+        return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+    if (!ubicacion) {
+        return res.status(400).json({ error: 'La ubicación es requerida' });
+    }
+    if (!telefono || !telefono.trim()) {
+        return res.status(400).json({ error: 'El teléfono es requerido' });
     }
 
     try {
@@ -80,19 +111,21 @@ router.post('/', verifyToken, async (req, res) => {
              RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp, created_at`,
             [
                 req.userId,
-                nombre,
+                nombre.trim(),
                 ubicacion,
                 descripcion || '',
-                JSON.stringify(servicios || []),
+                JSON.stringify(Array.isArray(servicios) ? servicios : []),
                 foto || null,
-                en_linea || false,
-                telefono,
-                whatsapp || telefono
+                en_linea === true || en_linea === 'true' || false,
+                telefono.trim(),
+                (whatsapp || telefono).trim()
             ]
         );
 
         const model = result.rows[0];
-        model.servicios = JSON.parse(model.servicios);
+        if (typeof model.servicios === 'string') {
+            model.servicios = JSON.parse(model.servicios);
+        }
 
         res.status(201).json({
             message: 'Modelo creado exitosamente',
@@ -105,14 +138,15 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // ===== ACTUALIZAR MODELO =====
+// Admin puede actualizar CUALQUIER modelo; usuario normal solo los suyos
 router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp } = req.body;
 
     try {
-        // Verificar que el modelo pertenece al usuario
+        // Verificar que el modelo existe
         const modelCheck = await query(
-            'SELECT user_id FROM models WHERE id = $1',
+            'SELECT id, user_id FROM models WHERE id = $1',
             [id]
         );
 
@@ -120,11 +154,12 @@ router.put('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Modelo no encontrado' });
         }
 
-        if (modelCheck.rows[0].user_id !== req.userId) {
+        // Si no es admin, verificar ownership
+        if (!req.isAdmin && modelCheck.rows[0].user_id !== req.userId) {
             return res.status(403).json({ error: 'No tienes permiso para actualizar este modelo' });
         }
 
-        // Actualizar
+        // Construir query de actualización
         const result = await query(
             `UPDATE models
              SET nombre = COALESCE($1, nombre),
@@ -136,19 +171,18 @@ router.put('/:id', verifyToken, async (req, res) => {
                  telefono = COALESCE($7, telefono),
                  whatsapp = COALESCE($8, whatsapp),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $9 AND user_id = $10
+             WHERE id = $9
              RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp, updated_at`,
             [
-                nombre || null,
+                nombre ? nombre.trim() : null,
                 ubicacion || null,
-                descripcion || null,
-                servicios ? JSON.stringify(servicios) : null,
-                foto || null,
-                en_linea !== undefined ? en_linea : null,
-                telefono || null,
-                whatsapp || null,
-                id,
-                req.userId
+                descripcion !== undefined ? descripcion : null,
+                servicios !== undefined ? JSON.stringify(Array.isArray(servicios) ? servicios : []) : null,
+                foto !== undefined ? foto : null,
+                en_linea !== undefined ? (en_linea === true || en_linea === 'true') : null,
+                telefono ? telefono.trim() : null,
+                whatsapp ? whatsapp.trim() : null,
+                id
             ]
         );
 
@@ -157,7 +191,9 @@ router.put('/:id', verifyToken, async (req, res) => {
         }
 
         const model = result.rows[0];
-        model.servicios = JSON.parse(model.servicios);
+        if (typeof model.servicios === 'string') {
+            model.servicios = JSON.parse(model.servicios);
+        }
 
         res.json({
             message: 'Modelo actualizado exitosamente',
@@ -165,18 +201,48 @@ router.put('/:id', verifyToken, async (req, res) => {
         });
     } catch (err) {
         console.error('Error actualizando modelo:', err);
-        res.status(500).json({ error: 'Error al actualizar modelo' });
+        res.status(500).json({ error: 'Error al actualizar modelo: ' + err.message });
+    }
+});
+
+// ===== TOGGLE EN LINEA (RUTA RÁPIDA PARA ADMIN) =====
+router.patch('/:id/toggle-online', verifyToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const modelCheck = await query('SELECT id, en_linea, user_id FROM models WHERE id = $1', [id]);
+
+        if (modelCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Modelo no encontrado' });
+        }
+
+        if (!req.isAdmin && modelCheck.rows[0].user_id !== req.userId) {
+            return res.status(403).json({ error: 'No tienes permiso' });
+        }
+
+        const newStatus = !modelCheck.rows[0].en_linea;
+
+        await query(
+            'UPDATE models SET en_linea = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [newStatus, id]
+        );
+
+        res.json({ message: 'Estado actualizado', en_linea: newStatus });
+    } catch (err) {
+        console.error('Error toggling status:', err);
+        res.status(500).json({ error: 'Error al cambiar estado' });
     }
 });
 
 // ===== ELIMINAR MODELO =====
+// Admin puede eliminar CUALQUIER modelo; usuario normal solo los suyos
 router.delete('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verificar que el modelo pertenece al usuario
+        // Verificar que el modelo existe
         const modelCheck = await query(
-            'SELECT user_id FROM models WHERE id = $1',
+            'SELECT id, user_id FROM models WHERE id = $1',
             [id]
         );
 
@@ -184,15 +250,12 @@ router.delete('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Modelo no encontrado' });
         }
 
-        if (modelCheck.rows[0].user_id !== req.userId) {
+        // Si no es admin, verificar ownership
+        if (!req.isAdmin && modelCheck.rows[0].user_id !== req.userId) {
             return res.status(403).json({ error: 'No tienes permiso para eliminar este modelo' });
         }
 
-        // Eliminar
-        await query(
-            'DELETE FROM models WHERE id = $1 AND user_id = $2',
-            [id, req.userId]
-        );
+        await query('DELETE FROM models WHERE id = $1', [id]);
 
         res.json({ message: 'Modelo eliminado exitosamente' });
     } catch (err) {

@@ -11,9 +11,10 @@ const verifyToken = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.userId = decoded.userId;
+        req.isAdmin = decoded.isAdmin || false;
         next();
     } catch (err) {
-        return res.status(401).json({ error: 'Token inválido' });
+        return res.status(401).json({ error: 'Token inválido o expirado' });
     }
 };
 

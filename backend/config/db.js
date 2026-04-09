@@ -37,10 +37,22 @@ const initializeTables = async () => {
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
+                is_admin BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+
+        // Migración: agregar columna is_admin si no existe (para DBs existentes)
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+        `);
         console.log('✓ Tabla users lista');
+
+        // Marcar automáticamente al admin email como is_admin = true
+        const adminEmail = process.env.ADMIN_EMAIL || 'cierpeh@gmail.com';
+        await pool.query(`
+            UPDATE users SET is_admin = true WHERE email = $1;
+        `, [adminEmail]);
 
         // Crear tabla models
         await pool.query(`

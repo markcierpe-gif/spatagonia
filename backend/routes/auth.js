@@ -30,15 +30,15 @@ router.post('/register', async (req, res) => {
 
         // Crear usuario
         const result = await query(
-            'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+            'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, is_admin',
             [email, passwordHash]
         );
 
         const user = result.rows[0];
 
-        // Generar JWT
+        // Generar JWT con is_admin incluido
         const token = jwt.sign(
-            { userId: user.id, email: user.email },
+            { userId: user.id, email: user.email, isAdmin: user.is_admin || false },
             process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
@@ -48,7 +48,8 @@ router.post('/register', async (req, res) => {
             token,
             user: {
                 id: user.id,
-                email: user.email
+                email: user.email,
+                isAdmin: user.is_admin || false
             }
         });
 
@@ -70,7 +71,7 @@ router.post('/login', async (req, res) => {
     try {
         // Buscar usuario
         const result = await query(
-            'SELECT id, email, password_hash FROM users WHERE email = $1',
+            'SELECT id, email, password_hash, is_admin FROM users WHERE email = $1',
             [email]
         );
 
@@ -86,9 +87,9 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // Generar JWT
+        // Generar JWT con is_admin incluido
         const token = jwt.sign(
-            { userId: user.id, email: user.email },
+            { userId: user.id, email: user.email, isAdmin: user.is_admin || false },
             process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
@@ -98,7 +99,8 @@ router.post('/login', async (req, res) => {
             token,
             user: {
                 id: user.id,
-                email: user.email
+                email: user.email,
+                isAdmin: user.is_admin || false
             }
         });
 

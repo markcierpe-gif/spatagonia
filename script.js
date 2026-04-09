@@ -42,13 +42,32 @@ let currentEditingId = null;
 let allModels = [];
 let currentFilter = null;
 
-// ===== HELPER: Token =====
+// ===== HELPER: Token y Admin =====
 function getToken() {
     return sessionStorage.getItem('token');
 }
 
 function isAdmin() {
     return !!getToken();
+}
+
+// Muestra un toast de notificación (no bloquea UI)
+function showToast(message, type = 'success') {
+    const existing = document.querySelector('.admin-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'admin-toast';
+    toast.style.cssText = `
+        position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+        background:${type === 'success' ? '#22c55e' : type === 'error' ? '#c52828' : '#333'};
+        color:white;padding:12px 20px;border-radius:8px;font-size:14px;
+        z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);
+        animation:fadeIn 0.2s ease;max-width:300px;text-align:center;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // ===== HELPER: Convertir archivo a base64 =====
@@ -245,6 +264,7 @@ modelForm.addEventListener('submit', async (e) => {
 
         // Éxito
         submitBtn.textContent = '✓ Guardado!';
+        showToast(currentEditingId ? 'Perfil actualizado correctamente' : 'Perfil creado correctamente');
         setTimeout(() => {
             closeModalFunc();
             renderProfiles();
@@ -279,10 +299,11 @@ formDelete.addEventListener('click', async () => {
 
         if (!response.ok) throw new Error('Error al eliminar');
 
+        showToast('Modelo eliminado exitosamente');
         closeModalFunc();
         renderProfiles();
     } catch (err) {
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 });
 
@@ -324,6 +345,8 @@ async function renderProfiles() {
             return;
         }
 
+        const admin = isAdmin();
+
         modelsToShow.forEach((model) => {
             const card = document.createElement('article');
             card.className = 'profile-card';
@@ -333,7 +356,29 @@ async function renderProfiles() {
                 imageUrl = window.location.hostname === 'localhost' ? `http://localhost:5000${model.foto}` : model.foto;
             }
 
-            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="Foto de ${model.nombre}, escort en ${model.ubicacion}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">` : '';
+            const imageHtml = imageUrl
+                ? `<img src="${imageUrl}" alt="Foto de ${model.nombre}, escort en ${model.ubicacion}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">`
+                : '<div style="width:100%;height:100%;background:#222;display:flex;align-items:center;justify-content:center;color:#555;font-size:40px;">👤</div>';
+
+            // Barra de acciones rápidas para admin (visible solo en modo admin)
+            const adminBar = admin ? `
+                <div class="admin-quick-bar" onclick="event.stopPropagation()" style="
+                    display:flex;gap:4px;padding:6px;background:rgba(0,0,0,0.85);
+                    justify-content:center;flex-wrap:wrap;
+                ">
+                    <button onclick="openModal(${model.id})" style="
+                        background:#c52828;color:white;border:none;border-radius:4px;
+                        padding:5px 10px;font-size:11px;cursor:pointer;
+                    ">✏️ Editar</button>
+                    <button onclick="toggleOnline(${model.id}, this)" data-online="${model.en_linea}" style="
+                        background:${model.en_linea ? '#16a34a' : '#666'};color:white;border:none;border-radius:4px;
+                        padding:5px 10px;font-size:11px;cursor:pointer;
+                    ">${model.en_linea ? '🟢 En línea' : '⚫ Offline'}</button>
+                    <button onclick="confirmDelete(${model.id})" style="
+                        background:#444;color:#ccc;border:none;border-radius:4px;
+                        padding:5px 8px;font-size:11px;cursor:pointer;
+                    ">🗑️</button>
+                </div>` : '';
 
             card.innerHTML = `
                 <div class="profile-image">
@@ -343,13 +388,18 @@ async function renderProfiles() {
                 </div>
                 <div class="profile-info">
                     <h3 class="profile-name">${model.nombre}</h3>
-                    <p class="profile-description">${model.descripcion}</p>
+                    <p class="profile-description">${model.descripcion || ''}</p>
                     <div class="profile-location">
                         <span>📍 ${model.ubicacion}</span>
                     </div>
                 </div>
+                ${adminBar}
             `;
-            card.addEventListener('click', () => openModal(model.id));
+
+            // Solo abrir modal de visitante si no hay click en admin bar
+            if (!admin) {
+                card.addEventListener('click', () => openModal(model.id));
+            }
             profilesGrid.appendChild(card);
         });
     } catch (err) {
@@ -426,6 +476,75 @@ if (phoneBtn) {
     });
 }
 
+// ===== TOGGLE EN LÍNEA (RÁPIDO DESDE GRID) =====
+async function toggleOnline(modelId, btn) {
+    const token = getToken();
+    if (!token) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+        const response = await fetch(`${API_URL}/models/${modelId}/toggle-online`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Error');
+
+        const data = await response.json();
+        const newOnline = data.en_linea;
+
+        btn.textContent = newOnline ? '🟢 En línea' : '⚫ Offline';
+        btn.style.background = newOnline ? '#16a34a' : '#666';
+        btn.dataset.online = newOnline;
+
+        // Actualizar indicador en la card
+        const card = btn.closest('article');
+        const indicator = card?.querySelector('.online-indicator');
+        if (indicator) {
+            indicator.className = `online-indicator ${newOnline ? 'active' : 'inactive'}`;
+        }
+
+        // Actualizar en allModels
+        const model = allModels.find(m => m.id === modelId);
+        if (model) model.en_linea = newOnline;
+
+        showToast(newOnline ? 'Modelo marcado En Línea' : 'Modelo marcado Offline');
+    } catch (err) {
+        showToast('Error al cambiar estado', 'error');
+        btn.textContent = btn.dataset.online === 'true' ? '🟢 En línea' : '⚫ Offline';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ===== ELIMINAR RÁPIDO DESDE GRID =====
+async function confirmDelete(modelId) {
+    const model = allModels.find(m => m.id === modelId);
+    if (!confirm(`¿Eliminar a ${model?.nombre || 'este modelo'}?`)) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_URL}/models/${modelId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Error al eliminar');
+        }
+
+        showToast('Modelo eliminado');
+        renderProfiles();
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
 // ===== LOGOUT =====
 
 function logout() {
@@ -438,16 +557,39 @@ function logout() {
 document.addEventListener('DOMContentLoaded', () => {
     renderProfiles();
 
-    // Mostrar/ocultar botón logout y admin según login
+    // Barra de admin persistente cuando está logueado
     if (isAdmin()) {
         const header = document.querySelector('.header');
         if (header) {
+            header.style.position = 'relative';
+
+            // Botón Salir
             const logoutBtn = document.createElement('button');
             logoutBtn.textContent = 'Salir';
             logoutBtn.style.cssText = 'background:#c52828;color:white;border:none;border-radius:4px;padding:6px 14px;font-size:13px;cursor:pointer;position:absolute;right:16px;top:50%;transform:translateY(-50%);';
             logoutBtn.addEventListener('click', logout);
-            header.style.position = 'relative';
             header.appendChild(logoutBtn);
         }
+
+        // Barra de admin flotante (herramientas rápidas)
+        const adminBar = document.createElement('div');
+        adminBar.id = 'adminFloatBar';
+        adminBar.style.cssText = `
+            position:fixed;top:0;left:0;right:0;
+            background:rgba(197,40,40,0.95);
+            color:white;padding:6px 16px;
+            display:flex;align-items:center;justify-content:space-between;
+            font-size:12px;z-index:10000;
+            backdrop-filter:blur(4px);
+        `;
+        adminBar.innerHTML = `
+            <span>🔑 <strong>MODO ADMIN</strong> — Usa los botones en cada perfil para editar, activar o eliminar</span>
+            <button onclick="openModal()" style="background:white;color:#c52828;border:none;border-radius:4px;padding:4px 12px;font-size:12px;cursor:pointer;font-weight:bold;">+ Agregar perfil</button>
+        `;
+        document.body.prepend(adminBar);
+
+        // Ajustar margen top del header para no quedar tapado
+        const mainHeader = document.querySelector('.header');
+        if (mainHeader) mainHeader.style.marginTop = '32px';
     }
 });
