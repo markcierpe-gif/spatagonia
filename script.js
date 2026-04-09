@@ -60,10 +60,52 @@ document.addEventListener('keydown', (e) => {
 // ===== FUNCIONES DEL MODAL =====
 
 function openModal(modelId = null) {
+    const token = sessionStorage.getItem('token');
+
+    if (modelId && !token) {
+        // MODO VISITANTE - mostrar detalle sin edición
+        const model = allModels.find(m => m.id === modelId);
+        if (!model) return;
+
+        const cleanPhone = (model.telefono || '+56912345679').replace(/\D/g, '');
+        const cleanWhatsapp = (model.whatsapp || model.telefono || '+56912345679').replace(/\D/g, '');
+        const servicios = Array.isArray(model.servicios) ? model.servicios.join(', ') : '';
+        let imageUrl = model.foto || '';
+
+        // Crear modal de detalle
+        const detailDiv = document.createElement('div');
+        detailDiv.className = 'model-detail-overlay';
+        detailDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        detailDiv.innerHTML = `
+            <div style="background:#1a1a1a;border-radius:12px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;">
+                <div style="position:relative;">
+                    <img src="${imageUrl}" alt="${model.nombre}" style="width:100%;height:300px;object-fit:cover;border-radius:12px 12px 0 0;">
+                    <button onclick="this.closest('.model-detail-overlay').remove()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;">✕</button>
+                    <span style="position:absolute;bottom:10px;left:10px;background:${model.en_linea ? '#22c55e' : '#666'};color:white;padding:4px 12px;border-radius:20px;font-size:12px;">${model.en_linea ? '🟢 En línea' : '⚫ Offline'}</span>
+                </div>
+                <div style="padding:20px;">
+                    <h2 style="color:white;margin-bottom:8px;">${model.nombre}</h2>
+                    <p style="color:#aaa;margin-bottom:12px;">📍 ${model.ubicacion}</p>
+                    <p style="color:#ccc;margin-bottom:16px;">${model.descripcion}</p>
+                    ${servicios ? `<p style="color:#aaa;margin-bottom:16px;">🏷️ ${servicios}</p>` : ''}
+                    <div style="display:flex;gap:12px;">
+                        <a href="https://wa.me/${cleanWhatsapp}?text=Hola" target="_blank" style="flex:1;background:#25D366;color:white;padding:12px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;">📱 WhatsApp</a>
+                        <a href="tel:+${cleanPhone}" style="flex:1;background:#c52828;color:white;padding:12px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;">📞 Llamar</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        detailDiv.addEventListener('click', (e) => {
+            if (e.target === detailDiv) detailDiv.remove();
+        });
+        document.body.appendChild(detailDiv);
+        return;
+    }
+
     currentEditingId = modelId;
 
     if (modelId) {
-        // Modo EDITAR
+        // Modo EDITAR (admin con login)
         const model = allModels.find(m => m.id === modelId);
         if (!model) return;
 
