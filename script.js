@@ -23,6 +23,11 @@ const modelWhatsapp = document.getElementById('modelWhatsapp');
 const modelPhoto = document.getElementById('modelPhoto');
 const modelOnline = document.getElementById('modelOnline');
 const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
+const modelInfoServicios = document.getElementById('modelInfoServicios');
+const modelHorario = document.getElementById('modelHorario');
+const modelLugar = document.getElementById('modelLugar');
+const modelPrecio = document.getElementById('modelPrecio');
+const modelCertificada = document.getElementById('modelCertificada');
 
 // Image preview handler
 modelPhoto.addEventListener('change', (e) => {
@@ -135,7 +140,13 @@ function openModal(modelId = null) {
                     <h2 style="color:white;margin-bottom:8px;">${model.nombre}</h2>
                     <p style="color:#aaa;margin-bottom:12px;">📍 ${model.ubicacion}</p>
                     <p style="color:#ccc;margin-bottom:16px;">${model.descripcion}</p>
-                    ${servicios ? `<p style="color:#aaa;margin-bottom:16px;">🏷️ ${servicios}</p>` : ''}
+                    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">
+                        <tr style="background:#c52828;"><td style="padding:8px;font-weight:bold;color:white;width:45%;">SERVICIOS</td><td style="padding:8px;background:#333;color:white;">${model.info_servicios || 'Consultar'}</td></tr>
+                        <tr style="background:#c52828;"><td style="padding:8px;font-weight:bold;color:white;">HORARIO</td><td style="padding:8px;background:#444;color:white;">${model.horario || '24 Horas'}</td></tr>
+                        <tr style="background:#c52828;"><td style="padding:8px;font-weight:bold;color:white;">LUGAR</td><td style="padding:8px;background:#333;color:white;">${model.lugar || 'Consultar'}</td></tr>
+                        <tr style="background:#c52828;"><td style="padding:8px;font-weight:bold;color:white;">PRECIO</td><td style="padding:8px;background:#444;color:white;">${model.precio || 'Consultar'}</td></tr>
+                        <tr style="background:#c52828;"><td style="padding:8px;font-weight:bold;color:white;">CERTIFICADA</td><td style="padding:8px;background:#333;color:white;">${model.certificada ? 'SÍ' : 'NO'}</td></tr>
+                    </table>
                     <div style="display:flex;gap:12px;">
                         <a href="https://wa.me/${cleanWhatsapp}?text=Hola" target="_blank" style="flex:1;background:#25D366;color:white;padding:14px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;font-size:16px;">📱 WhatsApp</a>
                         <a href="tel:+${cleanPhone}" style="flex:1;background:#c52828;color:white;padding:14px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;font-size:16px;">📞 Llamar</a>
@@ -171,12 +182,26 @@ function openModal(modelId = null) {
         serviceCheckboxes.forEach(checkbox => {
             checkbox.checked = servicios.includes(checkbox.value);
         });
+
+        // Pre-llenar campos del recuadro de info
+        modelInfoServicios.value = model.info_servicios || 'Consultar';
+        modelHorario.value = model.horario || '24 Horas';
+        modelLugar.value = model.lugar || 'Lugar propio, Hoteles, Moteles y Domicilios';
+        modelPrecio.value = model.precio || 'Consultar';
+        modelCertificada.checked = model.certificada || false;
+
     } else {
         // Modo CREAR
         modalTitle.textContent = 'Agregar Modelo';
         formDelete.style.display = 'none';
         modelForm.reset();
         modelOnline.checked = false;
+        modelCertificada.checked = false;
+        // Defaults para campos de info
+        modelInfoServicios.value = 'Consultar';
+        modelHorario.value = '24 Horas';
+        modelLugar.value = 'Lugar propio, Hoteles, Moteles y Domicilios';
+        modelPrecio.value = 'Consultar';
     }
 
     modelModal.classList.add('active');
@@ -222,7 +247,12 @@ modelForm.addEventListener('submit', async (e) => {
         telefono: modelPhone.value.trim(),
         whatsapp: modelWhatsapp.value.trim() || modelPhone.value.trim(),
         en_linea: modelOnline.checked,
-        servicios: Array.from(serviceCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
+        servicios: Array.from(serviceCheckboxes).filter(cb => cb.checked).map(cb => cb.value),
+        info_servicios: modelInfoServicios.value.trim() || 'Consultar',
+        horario: modelHorario.value.trim() || '24 Horas',
+        lugar: modelLugar.value.trim() || 'Lugar propio, Hoteles, Moteles y Domicilios',
+        precio: modelPrecio.value.trim() || 'Consultar',
+        certificada: modelCertificada.checked
     };
 
     // Procesar foto si se seleccionó
@@ -380,6 +410,16 @@ async function renderProfiles() {
                     ">🗑️</button>
                 </div>` : '';
 
+            // Recuadro de información
+            const infoTable = `
+                <div class="profile-info-table">
+                    <div class="info-row"><span class="info-label">SERVICIOS</span><span class="info-value">${model.info_servicios || 'Consultar'}</span></div>
+                    <div class="info-row"><span class="info-label">HORARIO</span><span class="info-value">${model.horario || '24 Horas'}</span></div>
+                    <div class="info-row"><span class="info-label">LUGAR</span><span class="info-value">${model.lugar || 'Consultar'}</span></div>
+                    <div class="info-row"><span class="info-label">PRECIO</span><span class="info-value">${model.precio || 'Consultar'}</span></div>
+                    <div class="info-row"><span class="info-label">CERTIFICADA</span><span class="info-value">${model.certificada ? 'SÍ' : 'NO'}</span></div>
+                </div>`;
+
             card.innerHTML = `
                 <div class="profile-image">
                     ${imageHtml}
@@ -393,6 +433,7 @@ async function renderProfiles() {
                         <span>📍 ${model.ubicacion}</span>
                     </div>
                 </div>
+                ${infoTable}
                 ${adminBar}
             `;
 

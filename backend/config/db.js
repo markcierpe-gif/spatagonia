@@ -67,10 +67,22 @@ const initializeTables = async () => {
                 en_linea BOOLEAN DEFAULT false,
                 telefono VARCHAR(20),
                 whatsapp VARCHAR(20),
+                info_servicios TEXT DEFAULT 'Consultar',
+                horario TEXT DEFAULT '24 Horas',
+                lugar TEXT DEFAULT 'Lugar propio, Hoteles, Moteles y Domicilios',
+                precio TEXT DEFAULT 'Consultar',
+                certificada BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+
+        // Migración: agregar columnas de info si no existen (para DBs existentes)
+        await pool.query(`ALTER TABLE models ADD COLUMN IF NOT EXISTS info_servicios TEXT DEFAULT 'Consultar';`);
+        await pool.query(`ALTER TABLE models ADD COLUMN IF NOT EXISTS horario TEXT DEFAULT '24 Horas';`);
+        await pool.query(`ALTER TABLE models ADD COLUMN IF NOT EXISTS lugar TEXT DEFAULT 'Lugar propio, Hoteles, Moteles y Domicilios';`);
+        await pool.query(`ALTER TABLE models ADD COLUMN IF NOT EXISTS precio TEXT DEFAULT 'Consultar';`);
+        await pool.query(`ALTER TABLE models ADD COLUMN IF NOT EXISTS certificada BOOLEAN DEFAULT false;`);
         console.log('✓ Tabla models lista');
 
         // Crear índices

@@ -13,7 +13,8 @@ router.get('/', verifyToken, async (req, res) => {
             // Admin: todos los modelos
             result = await query(
                 `SELECT id, nombre, ubicacion, descripcion, servicios,
-                        foto, en_linea, telefono, whatsapp, created_at
+                        foto, en_linea, telefono, whatsapp,
+                        info_servicios, horario, lugar, precio, certificada, created_at
                  FROM models
                  ORDER BY created_at DESC`
             );
@@ -41,7 +42,8 @@ router.get('/public/all', async (req, res) => {
     try {
         const result = await query(
             `SELECT id, nombre, ubicacion, descripcion, servicios,
-                    foto, en_linea, telefono, whatsapp, created_at
+                    foto, en_linea, telefono, whatsapp,
+                    info_servicios, horario, lugar, precio, certificada, created_at
              FROM models
              ORDER BY created_at DESC`
         );
@@ -63,7 +65,8 @@ router.get('/:id', verifyToken, async (req, res) => {
             // Admin puede ver cualquier modelo
             result = await query(
                 `SELECT id, nombre, ubicacion, descripcion, servicios,
-                        foto, en_linea, telefono, whatsapp, created_at
+                        foto, en_linea, telefono, whatsapp,
+                        info_servicios, horario, lugar, precio, certificada, created_at
                  FROM models
                  WHERE id = $1`,
                 [id]
@@ -71,7 +74,8 @@ router.get('/:id', verifyToken, async (req, res) => {
         } else {
             result = await query(
                 `SELECT id, nombre, ubicacion, descripcion, servicios,
-                        foto, en_linea, telefono, whatsapp, created_at
+                        foto, en_linea, telefono, whatsapp,
+                        info_servicios, horario, lugar, precio, certificada, created_at
                  FROM models
                  WHERE id = $1 AND user_id = $2`,
                 [id, req.userId]
@@ -91,7 +95,8 @@ router.get('/:id', verifyToken, async (req, res) => {
 
 // ===== CREAR MODELO =====
 router.post('/', verifyToken, async (req, res) => {
-    const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp } = req.body;
+    const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp,
+            info_servicios, horario, lugar, precio, certificada } = req.body;
 
     // Validación
     if (!nombre || !nombre.trim()) {
@@ -106,9 +111,11 @@ router.post('/', verifyToken, async (req, res) => {
 
     try {
         const result = await query(
-            `INSERT INTO models (user_id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp, created_at`,
+            `INSERT INTO models (user_id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp,
+                                 info_servicios, horario, lugar, precio, certificada)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+             RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp,
+                       info_servicios, horario, lugar, precio, certificada, created_at`,
             [
                 req.userId,
                 nombre.trim(),
@@ -118,7 +125,12 @@ router.post('/', verifyToken, async (req, res) => {
                 foto || null,
                 en_linea === true || en_linea === 'true' || false,
                 telefono.trim(),
-                (whatsapp || telefono).trim()
+                (whatsapp || telefono).trim(),
+                info_servicios || 'Consultar',
+                horario || '24 Horas',
+                lugar || 'Lugar propio, Hoteles, Moteles y Domicilios',
+                precio || 'Consultar',
+                certificada === true || certificada === 'true' || false
             ]
         );
 
@@ -141,7 +153,8 @@ router.post('/', verifyToken, async (req, res) => {
 // Admin puede actualizar CUALQUIER modelo; usuario normal solo los suyos
 router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp } = req.body;
+    const { nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp,
+            info_servicios, horario, lugar, precio, certificada } = req.body;
 
     try {
         // Verificar que el modelo existe
@@ -170,9 +183,15 @@ router.put('/:id', verifyToken, async (req, res) => {
                  en_linea = COALESCE($6, en_linea),
                  telefono = COALESCE($7, telefono),
                  whatsapp = COALESCE($8, whatsapp),
+                 info_servicios = COALESCE($10, info_servicios),
+                 horario = COALESCE($11, horario),
+                 lugar = COALESCE($12, lugar),
+                 precio = COALESCE($13, precio),
+                 certificada = COALESCE($14, certificada),
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $9
-             RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp, updated_at`,
+             RETURNING id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp,
+                       info_servicios, horario, lugar, precio, certificada, updated_at`,
             [
                 nombre ? nombre.trim() : null,
                 ubicacion || null,
@@ -182,7 +201,12 @@ router.put('/:id', verifyToken, async (req, res) => {
                 en_linea !== undefined ? (en_linea === true || en_linea === 'true') : null,
                 telefono ? telefono.trim() : null,
                 whatsapp ? whatsapp.trim() : null,
-                id
+                id,
+                info_servicios !== undefined ? info_servicios : null,
+                horario !== undefined ? horario : null,
+                lugar !== undefined ? lugar : null,
+                precio !== undefined ? precio : null,
+                certificada !== undefined ? (certificada === true || certificada === 'true') : null
             ]
         );
 
