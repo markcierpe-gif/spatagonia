@@ -27,6 +27,26 @@ const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
 // Variables globales
 let currentEditingId = null;
 let allModels = [];
+let currentFilter = null;
+
+// ===== HELPER: Token =====
+function getToken() {
+    return sessionStorage.getItem('token');
+}
+
+function isAdmin() {
+    return !!getToken();
+}
+
+// ===== HELPER: Convertir archivo a base64 =====
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 // ===== FUNCIONES DEL MENÚ =====
 
@@ -48,21 +68,18 @@ menuOverlay.addEventListener('click', closeMenuFunc);
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        if (sideMenu.classList.contains('active')) {
-            closeMenuFunc();
-        }
-        if (modelModal.classList.contains('active')) {
-            closeModalFunc();
-        }
+        if (sideMenu.classList.contains('active')) closeMenuFunc();
+        if (modelModal.classList.contains('active')) closeModalFunc();
+        // Cerrar detalle visitante
+        const detail = document.querySelector('.model-detail-overlay');
+        if (detail) detail.remove();
     }
 });
 
 // ===== FUNCIONES DEL MODAL =====
 
 function openModal(modelId = null) {
-    const token = sessionStorage.getItem('token');
-
-    if (modelId && !token) {
+    if (modelId && !isAdmin()) {
         // MODO VISITANTE - mostrar detalle sin edición
         const model = allModels.find(m => m.id === modelId);
         if (!model) return;
@@ -72,7 +89,6 @@ function openModal(modelId = null) {
         const servicios = Array.isArray(model.servicios) ? model.servicios.join(', ') : '';
         let imageUrl = model.foto || '';
 
-        // Crear modal de detalle
         const detailDiv = document.createElement('div');
         detailDiv.className = 'model-detail-overlay';
         detailDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -80,8 +96,8 @@ function openModal(modelId = null) {
             <div style="background:#1a1a1a;border-radius:12px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;">
                 <div style="position:relative;">
                     <img src="${imageUrl}" alt="${model.nombre}" style="width:100%;height:300px;object-fit:cover;border-radius:12px 12px 0 0;">
-                    <button onclick="this.closest('.model-detail-overlay').remove()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;">✕</button>
-                    <span style="position:absolute;bottom:10px;left:10px;background:${model.en_linea ? '#22c55e' : '#666'};color:white;padding:4px 12px;border-radius:20px;font-size:12px;">${model.en_linea ? '🟢 En línea' : '⚫ Offline'}</span>
+                    <button onclick="this.closest('.model-detail-overlay').remove()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer;">✕</button>
+                    <span style="position:absolute;bottom:10px;left:10px;background:${model.en_linea ? '#22c55e' : '#666'};color:white;padding:4px 12px;border-radius:20px;font-size:12px;">${model.en_linea ? '🟢 En linea' : '⚫ Offline'}</span>
                 </div>
                 <div style="padding:20px;">
                     <h2 style="color:white;margin-bottom:8px;">${model.nombre}</h2>
@@ -89,8 +105,8 @@ function openModal(modelId = null) {
                     <p style="color:#ccc;margin-bottom:16px;">${model.descripcion}</p>
                     ${servicios ? `<p style="color:#aaa;margin-bottom:16px;">🏷️ ${servicios}</p>` : ''}
                     <div style="display:flex;gap:12px;">
-                        <a href="https://wa.me/${cleanWhatsapp}?text=Hola" target="_blank" style="flex:1;background:#25D366;color:white;padding:12px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;">📱 WhatsApp</a>
-                        <a href="tel:+${cleanPhone}" style="flex:1;background:#c52828;color:white;padding:12px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;">📞 Llamar</a>
+                        <a href="https://wa.me/${cleanWhatsapp}?text=Hola" target="_blank" style="flex:1;background:#25D366;color:white;padding:14px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;font-size:16px;">📱 WhatsApp</a>
+                        <a href="tel:+${cleanPhone}" style="flex:1;background:#c52828;color:white;padding:14px;border-radius:8px;text-align:center;text-decoration:none;font-weight:bold;font-size:16px;">📞 Llamar</a>
                     </div>
                 </div>
             </div>
@@ -119,7 +135,6 @@ function openModal(modelId = null) {
         modelWhatsapp.value = model.whatsapp;
         modelOnline.checked = model.en_linea;
 
-        // Cargar servicios
         const servicios = Array.isArray(model.servicios) ? model.servicios : [];
         serviceCheckboxes.forEach(checkbox => {
             checkbox.checked = servicios.includes(checkbox.value);
@@ -149,80 +164,102 @@ modelModal.addEventListener('click', (e) => {
     if (e.target === modelModal) closeModalFunc();
 });
 
-// ===== SUBMIT FORMULARIO =====
+// ===== SUBMIT FORMULARIO (CONECTADO A API) =====
 
 modelForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Validar campos requeridos
-    if (!modelName.value.trim()) {
-        alert('El nombre es requerido');
-        return;
-    }
-    if (!modelLocation.value) {
-        alert('La ubicación es requerida');
-        return;
-    }
-    if (!modelPhone.value.trim()) {
-        alert('El teléfono es requerido');
-        return;
-    }
+    if (!modelName.value.trim()) { alert('El nombre es requerido'); return; }
+    if (!modelLocation.value) { alert('La ubicacion es requerida'); return; }
+    if (!modelPhone.value.trim()) { alert('El telefono es requerido'); return; }
 
-    // Obtener modelo actual o crear uno nuevo
-    let model = currentEditingId ? getModelById(currentEditingId) : { ...emptyModel, id: generateId() };
+    const token = getToken();
+    if (!token) { alert('Debes iniciar sesion'); return; }
 
-    // Actualizar datos
-    model.nombre = modelName.value.trim();
-    model.ubicacion = modelLocation.value;
-    model.descripcion = modelDescription.value.trim();
-    model.telefono = modelPhone.value.trim();
-    model.whatsapp = modelWhatsapp.value.trim() || modelPhone.value.trim();
-    model.en_linea = modelOnline.checked;
-
-    // Servicios seleccionados
-    model.servicios = Array.from(serviceCheckboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
+    // Construir datos del modelo
+    const modelData = {
+        nombre: modelName.value.trim(),
+        ubicacion: modelLocation.value,
+        descripcion: modelDescription.value.trim(),
+        telefono: modelPhone.value.trim(),
+        whatsapp: modelWhatsapp.value.trim() || modelPhone.value.trim(),
+        en_linea: modelOnline.checked,
+        servicios: Array.from(serviceCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
+    };
 
     // Procesar foto si se seleccionó
     if (modelPhoto.files.length > 0) {
         const file = modelPhoto.files[0];
-        if (file.size > 2 * 1024 * 1024) {
-            alert('La imagen es muy grande (máx 2MB)');
-            return;
-        }
+        if (file.size > 2 * 1024 * 1024) { alert('La imagen es muy grande (max 2MB)'); return; }
         try {
-            model.foto = await fileToBase64(file);
+            modelData.foto = await fileToBase64(file);
         } catch (err) {
             alert('Error al procesar la imagen');
             return;
         }
     }
 
-    // Guardar en localStorage
-    saveModel(model);
+    try {
+        let response;
+        if (currentEditingId) {
+            // ACTUALIZAR modelo existente via API
+            response = await fetch(`${API_URL}/models/${currentEditingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(modelData)
+            });
+        } else {
+            // CREAR nuevo modelo via API
+            response = await fetch(`${API_URL}/models`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(modelData)
+            });
+        }
 
-    // Cerrar modal y renderizar
-    closeModalFunc();
-    renderProfiles();
-});
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Error al guardar');
+        }
 
-// Botón eliminar
-formDelete.addEventListener('click', () => {
-    if (confirm('¿Estás seguro de que deseas eliminar este modelo?')) {
-        deleteModel(currentEditingId);
         closeModalFunc();
         renderProfiles();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
+// Botón eliminar (conectado a API)
+formDelete.addEventListener('click', async () => {
+    if (!confirm('¿Estas seguro de que deseas eliminar este modelo?')) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_URL}/models/${currentEditingId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Error al eliminar');
+
+        closeModalFunc();
+        renderProfiles();
+    } catch (err) {
+        alert('Error: ' + err.message);
     }
 });
 
 // ===== RENDERIZAR GRID =====
 
 async function renderProfiles() {
-    try {
-        const token = sessionStorage.getItem('token');
+    // Mostrar estado de carga
+    profilesGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;">Cargando modelos...</div>';
 
-        // Fetch modelos desde API (pública o autenticada)
+    try {
+        const token = getToken();
+
         let response;
         if (token) {
             response = await fetch(`${API_URL}/models`, {
@@ -232,25 +269,36 @@ async function renderProfiles() {
             response = await fetch(`${API_URL}/models/public/all`);
         }
 
-        if (!response.ok) {
-            throw new Error('No se pudieron cargar los modelos');
-        }
+        if (!response.ok) throw new Error('No se pudieron cargar los modelos');
 
         allModels = await response.json();
         profilesGrid.innerHTML = '';
 
-        allModels.forEach((model) => {
+        if (allModels.length === 0) {
+            profilesGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;">No hay modelos disponibles</div>';
+            return;
+        }
+
+        // Filtrar si hay filtro activo
+        const modelsToShow = currentFilter
+            ? allModels.filter(m => m.ubicacion === currentFilter)
+            : allModels;
+
+        if (modelsToShow.length === 0) {
+            profilesGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;">No hay modelos en ${currentFilter} <br><a href="#" onclick="clearFilter();return false;" style="color:#c52828;">Ver todas</a></div>`;
+            return;
+        }
+
+        modelsToShow.forEach((model) => {
             const card = document.createElement('article');
             card.className = 'profile-card';
 
-            // Convertir URL relativa a absoluta (apuntar al backend)
             let imageUrl = model.foto;
             if (model.foto && model.foto.startsWith('/images/')) {
                 imageUrl = window.location.hostname === 'localhost' ? `http://localhost:5000${model.foto}` : model.foto;
             }
 
-            // Tarjeta con datos - usando <img> en lugar de background-image
-            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="${model.nombre}" style="width: 100%; height: 100%; object-fit: cover;">` : '';
+            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="${model.nombre}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">` : '';
 
             card.innerHTML = `
                 <div class="profile-image">
@@ -267,29 +315,13 @@ async function renderProfiles() {
                 </div>
             `;
             card.addEventListener('click', () => openModal(model.id));
-
             profilesGrid.appendChild(card);
         });
     } catch (err) {
         console.error('Error renderizando perfiles:', err);
-        profilesGrid.innerHTML = '<p style="padding: 20px; color: #ccc;">Error al cargar modelos</p>';
+        profilesGrid.innerHTML = '<p style="padding: 20px; color: #ccc;">Error al cargar modelos. Intenta recargar la pagina.</p>';
     }
 }
-
-// ===== SMOOTH SCROLL =====
-
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
-});
 
 // ===== FILTROS Y MENÚ =====
 
@@ -298,9 +330,7 @@ filterButtons.forEach(button => {
     button.addEventListener('click', function() {
         const parentSection = this.closest('.filters-horizontal, .view-buttons');
         if (parentSection) {
-            parentSection.querySelectorAll('.active').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            parentSection.querySelectorAll('.active').forEach(btn => btn.classList.remove('active'));
         }
         this.classList.add('active');
     });
@@ -314,134 +344,75 @@ menuItems.forEach(item => {
         const text = this.textContent.trim().toUpperCase();
         let ubicacion = null;
 
-        // Detectar ubicación del menú
         if (text.includes('PUNTA ARENAS')) ubicacion = 'Punta Arenas';
         else if (text.includes('PUERTO NATALES')) ubicacion = 'Puerto Natales';
         else if (text.includes('PORVENIR')) ubicacion = 'Porvenir';
         else if (text.includes('COYHAIQUE')) ubicacion = 'Coyhaique';
 
-        // Si es una ubicación válida, filtrar
         if (ubicacion) {
-            closeMenuFunc();
-            filterModelsByLocation(ubicacion);
+            // Marcar item activo
+            menuItems.forEach(i => i.style.color = '');
+            this.style.color = '#c52828';
 
-            // Scroll a los modelos
+            closeMenuFunc();
+            currentFilter = ubicacion;
+            renderProfiles();
+
             setTimeout(() => {
-                document.getElementById('profilesGrid').scrollIntoView({ behavior: 'smooth' });
+                profilesGrid.scrollIntoView({ behavior: 'smooth' });
             }, 100);
         }
     });
 });
 
-// Función para filtrar por ubicación
-function filterModelsByLocation(ubicacion) {
-    const cards = document.querySelectorAll('.profile-card');
-    let visibleCount = 0;
-
-    cards.forEach(card => {
-        const cardText = card.textContent;
-        if (cardText.includes(ubicacion)) {
-            card.style.display = 'block';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-
-    // Si no hay resultados, mostrar todos
-    if (visibleCount === 0) {
-        cards.forEach(card => card.style.display = 'block');
-    }
+function clearFilter() {
+    currentFilter = null;
+    menuItems.forEach(i => i.style.color = '');
+    renderProfiles();
 }
-
-// ===== LAZY LOADING =====
-
-const observerOptions = {
-    root: null,
-    rootMargin: '50px',
-    threshold: 0.1
-};
-
-const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const img = entry.target;
-            img.style.opacity = '1';
-            observer.unobserve(img);
-        }
-    });
-}, observerOptions);
-
-// ===== DETECTAR SCROLL PARA LAZY LOADING =====
-
-let isLoading = false;
-window.addEventListener('scroll', () => {
-    if (isLoading) return;
-
-    const scrollPosition = window.innerHeight + window.scrollY;
-    const pageHeight = document.documentElement.scrollHeight;
-
-    if (scrollPosition >= pageHeight - 500) {
-        isLoading = true;
-        setTimeout(() => {
-            isLoading = false;
-        }, 1000);
-    }
-});
 
 // ===== BOTONES FLOTANTES FUNCIONALES =====
 
 const whatsappBtn = document.querySelector('.float-btn.whatsapp');
 const phoneBtn = document.querySelector('.float-btn.phone');
 
-// Obtener número desde el primer modelo o usar el default
-function getPhoneNumbers() {
-    if (allModels.length > 0) {
-        return {
-            whatsapp: allModels[0].whatsapp || '+56912345679',
-            phone: allModels[0].telefono || '+56912345679'
-        };
-    }
-    return {
-        whatsapp: '+56912345679',
-        phone: '+56912345679'
-    };
-}
-
-// WhatsApp
 if (whatsappBtn) {
     whatsappBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const { whatsapp } = getPhoneNumbers();
-        const cleanNum = whatsapp.replace(/\D/g, '');
-        window.open(`https://wa.me/${cleanNum}?text=Hola`, '_blank');
+        const num = '+56912345679';
+        window.open(`https://wa.me/${num.replace(/\D/g, '')}?text=Hola`, '_blank');
     });
 }
 
-// Teléfono
 if (phoneBtn) {
     phoneBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const { phone } = getPhoneNumbers();
-        window.location.href = `tel:${phone}`;
+        window.location.href = 'tel:+56912345679';
     });
 }
 
-// ===== PREVENIR ZOOM EN INPUTS (iOS) =====
+// ===== LOGOUT =====
 
-document.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 1) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-if ('ontouchstart' in window) {
-    document.body.classList.add('touch-device');
+function logout() {
+    sessionStorage.clear();
+    window.location.reload();
 }
 
 // ===== INICIALIZACIÓN =====
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar perfiles (cualquier visitante puede ver)
     renderProfiles();
+
+    // Mostrar/ocultar botón logout y admin según login
+    if (isAdmin()) {
+        const header = document.querySelector('.header');
+        if (header) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.textContent = 'Salir';
+            logoutBtn.style.cssText = 'background:#c52828;color:white;border:none;border-radius:4px;padding:6px 14px;font-size:13px;cursor:pointer;position:absolute;right:16px;top:50%;transform:translateY(-50%);';
+            logoutBtn.addEventListener('click', logout);
+            header.style.position = 'relative';
+            header.appendChild(logoutBtn);
+        }
+    }
 });

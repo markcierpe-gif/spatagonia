@@ -39,13 +39,15 @@ body {
 .menu-toggle {
     background: none;
     border: none;
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 6px;
+    align-items: center;
     cursor: pointer;
-    padding: 0;
+    padding: 8px;
 }
 
 .menu-toggle span {

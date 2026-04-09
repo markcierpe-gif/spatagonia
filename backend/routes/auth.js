@@ -39,7 +39,7 @@ router.post('/register', async (req, res) => {
         // Generar JWT
         const token = jwt.sign(
             { userId: user.id, email: user.email },
-            process.env.JWT_SECRET || 'secret_key',
+            process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
 
@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
         // Generar JWT
         const token = jwt.sign(
             { userId: user.id, email: user.email },
-            process.env.JWT_SECRET || 'secret_key',
+            process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
 
@@ -117,7 +117,7 @@ router.post('/verify', async (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         res.json({ valid: true, user: decoded });
     } catch (err) {
         res.status(401).json({ valid: false });

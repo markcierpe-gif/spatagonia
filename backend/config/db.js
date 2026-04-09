@@ -62,9 +62,9 @@ const initializeTables = async () => {
         console.log('✓ Tabla models lista');
 
         // Crear índices
-        await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_models_user_id ON models(user_id);
-        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_models_user_id ON models(user_id);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_models_ubicacion ON models(ubicacion);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_models_en_linea ON models(en_linea);`);
         console.log('✓ Índices creados');
 
     } catch (err) {
