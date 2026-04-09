@@ -57,7 +57,28 @@ app.get('/api/seed', async (req, res) => {
         // Limpiar modelos anteriores
         await query('DELETE FROM models');
 
-        const fotoUrl = 'https://via.placeholder.com/400x500.jpg?text=Modelo';
+        const fotos = [
+            'https://picsum.photos/seed/m1/400/500',
+            'https://picsum.photos/seed/m2/400/500',
+            'https://picsum.photos/seed/m3/400/500',
+            'https://picsum.photos/seed/m4/400/500',
+            'https://picsum.photos/seed/m5/400/500',
+            'https://picsum.photos/seed/m6/400/500',
+            'https://picsum.photos/seed/m7/400/500',
+            'https://picsum.photos/seed/m8/400/500',
+            'https://picsum.photos/seed/m9/400/500',
+            'https://picsum.photos/seed/m10/400/500',
+            'https://picsum.photos/seed/m11/400/500',
+            'https://picsum.photos/seed/m12/400/500',
+            'https://picsum.photos/seed/m13/400/500',
+            'https://picsum.photos/seed/m14/400/500',
+            'https://picsum.photos/seed/m15/400/500',
+            'https://picsum.photos/seed/m16/400/500',
+            'https://picsum.photos/seed/m17/400/500',
+            'https://picsum.photos/seed/m18/400/500',
+            'https://picsum.photos/seed/m19/400/500',
+            'https://picsum.photos/seed/m20/400/500'
+        ];
         const nombres = ['VALENTINA LATINA','PAOLITA Y NICOLE','LORENA APRETADITA','SOFÍA SENSUAL','JESSICA HOT','CAMILA CARIÑOSA','MARTINA LATINA','GABRIELA SEXY','LUNA JOVENCITA','ISABELLA HERMOSA','DANIELA BELLA','ROXANA PASIONAL','VANESSA COQUETA','ANDREA SENSIBLE','GLORIA ATREVIDA','KARINA BELLA','ALEJANDRA HOT','BRENDA SEXY','CYNTHIA PASIONAL','DIANA CARIÑOSA'];
         const ubicaciones = ['Punta Arenas','Punta Arenas','Punta Arenas','Punta Arenas','Punta Arenas','Puerto Natales','Puerto Natales','Puerto Natales','Puerto Natales','Puerto Natales','Porvenir','Porvenir','Porvenir','Porvenir','Porvenir','Coyhaique','Coyhaique','Coyhaique','Coyhaique','Coyhaique'];
         const telefono = '+56912345679';
@@ -65,7 +86,7 @@ app.get('/api/seed', async (req, res) => {
         for (let i = 0; i < 20; i++) {
             await query(
                 'INSERT INTO models (user_id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-                [userId, nombres[i], ubicaciones[i], '✨ Una experiencia HOT 🔥 para disfrutar ✨', '["Video Call","Fotos"]', fotoUrl, i % 2 === 0, telefono, telefono]
+                [userId, nombres[i], ubicaciones[i], '✨ Una experiencia HOT 🔥 para disfrutar ✨', '["Video Call","Fotos"]', fotos[i], i % 2 === 0, telefono, telefono]
             );
         }
 
