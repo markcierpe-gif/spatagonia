@@ -12,7 +12,7 @@ RUN cd backend && npm install --omit=dev
 COPY . .
 
 # Cloud Run inyecta PORT automáticamente
-ENV PORT=8080
+# PORT es inyectado por Railway/Cloud Run en tiempo de ejecución
 ENV NODE_ENV=production
 
 # El servidor está en /backend pero sirve ../ como estáticos

@@ -226,15 +226,29 @@ app.use((err, req, res, next) => {
 
 // ===== INICIAR SERVIDOR =====
 const startServer = async () => {
-    try {
-        await initializeTables();
-        app.listen(PORT, () => {
-            console.log(`\n✓ Servidor corriendo en puerto ${PORT}`);
-            console.log(`✓ Node env: ${process.env.NODE_ENV || 'development'}\n`);
-        });
-    } catch (err) {
-        console.error('Error al iniciar servidor:', err);
-        process.exit(1);
+    // Arrancar HTTP primero para que Railway/Render detecte el puerto
+    app.listen(PORT, () => {
+        console.log(`\n✓ Servidor corriendo en puerto ${PORT}`);
+        console.log(`✓ Node env: ${process.env.NODE_ENV || 'development'}\n`);
+    });
+
+    // Intentar conectar a la DB con reintentos
+    let intentos = 0;
+    const maxIntentos = 5;
+    while (intentos < maxIntentos) {
+        try {
+            await initializeTables();
+            console.log('✓ Base de datos conectada');
+            break;
+        } catch (err) {
+            intentos++;
+            console.error(`Error DB (intento ${intentos}/${maxIntentos}):`, err.message);
+            if (intentos >= maxIntentos) {
+                console.error('No se pudo conectar a la base de datos. El servidor sigue activo.');
+            } else {
+                await new Promise(r => setTimeout(r, 3000)); // esperar 3 segundos antes de reintentar
+            }
+        }
     }
 };
 
