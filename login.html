@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Spatagonia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-transform: lowercase;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #cccccc;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #444;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #c52828;
+            background-color: #222;
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-login {
+            background-color: #c52828;
+            color: white;
+        }
+
+        .btn-login:hover {
+            background-color: #a01f1f;
+        }
+
+        .btn-register {
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #444;
+        }
+
+        .btn-register:hover {
+            background-color: #444;
+        }
+
+        .error {
+            background-color: #7f1d1d;
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #cccccc;
+            font-size: 14px;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #cccccc;
+        }
+
+        .toggle-form a {
+            color: #c52828;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">spatagonia</div>
+            <div class="subtitle" id="formTitle">Inicia sesión para continuar</div>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+
+        <form id="authForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="tu@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" required placeholder="Mínimo 6 caracteres">
+            </div>
+
+            <div id="confirmPasswordGroup" class="form-group" style="display: none;">
+                <label for="confirmPassword">Confirmar Contraseña</label>
+                <input type="password" id="confirmPassword" placeholder="Repite tu contraseña">
+            </div>
+
+            <div class="btn-container">
+                <button type="submit" class="btn-login" id="submitBtn">Iniciar Sesión</button>
+            </div>
+
+            <div class="loading" id="loading">Procesando...</div>
+        </form>
+
+        <div class="toggle-form">
+            <span id="toggleText">¿No tienes cuenta? <a id="toggleLink" onclick="toggleForm()">Registrarse</a></span>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let isLoginMode = true;
+
+        const authForm = document.getElementById('authForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const formTitle = document.getElementById('formTitle');
+        const toggleText = document.getElementById('toggleText');
+
+        function toggleForm() {
+            isLoginMode = !isLoginMode;
+
+            if (isLoginMode) {
+                formTitle.textContent = 'Inicia sesión para continuar';
+                submitBtn.textContent = 'Iniciar Sesión';
+                confirmPasswordGroup.style.display = 'none';
+                toggleText.innerHTML = '¿No tienes cuenta? <a onclick="toggleForm()">Registrarse</a>';
+            } else {
+                formTitle.textContent = 'Crea una nueva cuenta';
+                submitBtn.textContent = 'Registrarse';
+                confirmPasswordGroup.style.display = 'block';
+                toggleText.innerHTML = '¿Ya tienes cuenta? <a onclick="toggleForm()">Iniciar Sesión</a>';
+            }
+
+            authForm.reset();
+            errorMessage.classList.remove('show');
+        }
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            // Validación
+            if (!email || !password) {
+                showError('Por favor completa todos los campos');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            if (!isLoginMode) {
+                const confirmPassword = confirmPasswordInput.value;
+                if (password !== confirmPassword) {
+                    showError('Las contraseñas no coinciden');
+                    return;
+                }
+            }
+
+            // Enviar request
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
+                const response = await fetch(API_URL + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError(data.error || 'Error en la solicitud');
+                    return;
+                }
+
+                // Guardar token y redirigir
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('user', JSON.stringify(data.user));
+
+                // Redirigir a index.html
+                window.location.href = '/index.html';
+
+            } catch (err) {
+                showError('Error de conexión. Verifica que el servidor está corriendo en http://localhost:5000');
+                console.error('Error:', err);
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        // Verificar si ya hay sesión
+        window.addEventListener('load', () => {
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                window.location.href = '/index.html';
+            }
+        });
+    </script>
+</body>
+</html>

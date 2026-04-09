@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitio Clasificados - Mobile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header Fijo -->
+    <header class="header">
+        <button class="menu-toggle" id="menuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="logo">spatagonia</div>
+    </header>
+
+    <!-- Menú Lateral (Overlay) -->
+    <nav class="side-menu" id="sideMenu">
+        <button class="close-menu" id="closeMenu">✕</button>
+        
+        <section class="menu-section">
+            <h3>UBICACIÓN</h3>
+            <ul class="menu-list">
+                <li><span class="icon-location"></span> ESCORT EN PUNTA ARENAS</li>
+                <li><span class="icon-location"></span> ESCORT EN PUERTO NATALES</li>
+                <li><span class="icon-location"></span> ESCORT EN PORVENIR</li>
+                <li><span class="icon-location"></span> ESCORT EN COYHAIQUE</li>
+            </ul>
+        </section>
+
+        <section class="menu-section">
+            <h3>ESPECIAL</h3>
+            <ul class="menu-list">
+                <li><span class="icon-online"></span> ESCORT EN LÍNEA</li>
+                <li><span class="icon-video"></span> VIDEO LLAMADAS & PACK DE FOTOS</li>
+                <li><span class="icon-verified"></span> ESCORT CON VIDEOS</li>
+                <li><span class="icon-check"></span> ESCORT CERTIFICADAS</li>
+                <li><span class="icon-star"></span> ESCORT CON PROMOCIONES</li>
+            </ul>
+        </section>
+
+        <section class="menu-section">
+            <h3>CATEGORÍAS</h3>
+            <ul class="menu-list">
+                <li><span class="icon-female"></span> ESCORT MUJERES</li>
+                <li><span class="icon-trans"></span> TRANSEXUALES Y TRAVESTIS</li>
+                <li><span class="icon-agency"></span> AGENCIAS Y ALOJAMIENTO</li>
+                <li><span class="icon-male"></span> ESCORT HOMBRES</li>
+            </ul>
+        </section>
+    </nav>
+
+    <!-- Overlay del menú -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+        
+        <!-- Hero / Perfil Destacado -->
+        <section class="hero-featured">
+            <div class="featured-card">
+                <div class="featured-image">
+                    <!-- Imagen de fondo -->
+                </div>
+                <div class="featured-content">
+                    <h2 class="featured-title">LUNA JOVENCITA</h2>
+                    <p class="featured-description">Jovencita super simpática y cariñosa esperándote para pasar un momento inolvidable</p>
+                    <span class="featured-time">Hace 18 horas en PUNTA ARENAS</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Título de Sección -->
+        <section class="section-header">
+            <h1>Escorts y Servicios de Compañía en Punta Arenas y Puerto Natales</h1>
+        </section>
+
+        <!-- Filtros de Categoría (Botones Horizontales) -->
+        <section class="filters-horizontal">
+            <button class="filter-btn">MUJERES</button>
+            <button class="filter-btn">TRANS</button>
+            <button class="filter-btn">TODAS</button>
+        </section>
+
+        <section class="filters-horizontal">
+            <button class="filter-btn">CERTIFICADAS</button>
+            <button class="filter-btn">PORVENIR</button>
+        </section>
+
+        <section class="filters-horizontal center">
+            <button class="filter-btn">COYHAIQUE</button>
+        </section>
+
+        <!-- Botones de Vista/Ubicación -->
+        <section class="view-buttons">
+            <button class="view-btn active">En Línea</button>
+            <button class="view-btn">PUERTO NATALES</button>
+            <button class="view-btn">PUNTA ARENAS</button>
+            <button class="view-btn">AGENCIAS</button>
+        </section>
+
+        <section class="view-buttons">
+            <button class="view-btn">HOMBRES</button>
+            <button class="view-btn">TRANS</button>
+            <button class="view-btn">TODAS</button>
+        </section>
+
+        <section class="view-buttons">
+            <button class="view-btn">CERTIFICADAS</button>
+            <button class="view-btn">PORVENIR</button>
+        </section>
+
+        <section class="view-buttons center">
+            <button class="view-btn">COYHAIQUE</button>
+        </section>
+
+        <!-- Grid de Perfiles - Generado dinámicamente -->
+        <section class="profiles-grid" id="profilesGrid">
+            <!-- Tarjetas generadas por JavaScript -->
+        </section>
+
+        <!-- Texto Informativo -->
+        <section class="info-text">
+            <h2>Encuentros y Escorts en Punta Arenas y Puerto Natales</h2>
+            <p>Bienvenido a <strong>Spatagonia</strong>, el portal de anuncios clasificados más confiable de la Región de Magallanes y Patagonia Chilena. Si estás buscando <strong>escorts en Punta Arenas</strong> o servicios de compañía en <strong>Puerto Natales</strong>, has llegado al lugar indicado. Nuestro directorio ofrece una selección exclusiva de perfiles independientes, agencias y masajistas que operan en toda la zona sur de Chile.</p>
+
+            <p>Nos diferenciamos por ofrecer <strong>anuncios certificados</strong> con fotos reales, garantizando que tu experiencia sea segura y discreta. Ya sea que te encuentres de paso por la Patagonia o residas en la zona, en Spatagonia facilitamos el contacto directo con <strong>damas de compañía</strong>, caballeros y perfiles trans, disponibles las 24 horas para brindarte momentos únicos y una atención exclusiva.</p>
+        </section>
+
+    </main>
+
+    <!-- Modal para Crear/Editar Modelo -->
+    <div class="modal-overlay" id="modelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Agregar Modelo</h2>
+                <button class="modal-close" id="modalClose">✕</button>
+            </div>
+
+            <form class="model-form" id="modelForm">
+                <div class="form-group">
+                    <label for="modelName">Nombre *</label>
+                    <input type="text" id="modelName" required placeholder="Nombre o alias">
+                </div>
+
+                <div class="form-group">
+                    <label for="modelLocation">Ubicación *</label>
+                    <select id="modelLocation" required>
+                        <option value="">Seleccionar ubicación</option>
+                        <option value="Punta Arenas">Punta Arenas</option>
+                        <option value="Puerto Natales">Puerto Natales</option>
+                        <option value="Porvenir">Porvenir</option>
+                        <option value="Coyhaique">Coyhaique</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelDescription">Descripción</label>
+                    <textarea id="modelDescription" placeholder="Describe los servicios y características" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Servicios</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" value="Video Call" class="service-checkbox"> Video Call
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" value="Fotos" class="service-checkbox"> Fotos
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" value="Llamadas" class="service-checkbox"> Llamadas
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" value="Visita" class="service-checkbox"> Visita
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelPhone">Teléfono *</label>
+                    <input type="tel" id="modelPhone" required placeholder="+56912345678">
+                </div>
+
+                <div class="form-group">
+                    <label for="modelWhatsapp">WhatsApp</label>
+                    <input type="tel" id="modelWhatsapp" placeholder="+56912345678">
+                </div>
+
+                <div class="form-group">
+                    <label for="modelPhoto">Foto</label>
+                    <input type="file" id="modelPhoto" accept="image/*">
+                    <small>Formatos: JPG, PNG. Máx 2MB</small>
+                </div>
+
+                <div class="form-group toggle-group">
+                    <label for="modelOnline">En Línea</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="modelOnline">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Guardar</button>
+                    <button type="button" class="btn-cancel" id="formCancel">Cancelar</button>
+                    <button type="button" class="btn-delete" id="formDelete" style="display: none;">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botones de Acción Flotantes -->
+    <div class="floating-actions">
+        <a href="#" class="float-btn whatsapp">
+            <span class="icon-whatsapp"></span>
+        </a>
+        <a href="#" class="float-btn phone">
+            <span class="icon-phone"></span>
+        </a>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

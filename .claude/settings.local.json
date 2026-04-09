@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m http.server 8888)",
+      "Bash(psql --version)",
+      "Bash(node -c seed-data.js)",
+      "Bash(ls -1 backend/*.js)",
+      "Bash(ls -1 *.md)",
+      "Bash(ls -1 *.jpg)",
+      "Bash(cp /tmp/postgresql-installer.exe \"/c/postgresql-16-installer.exe\")",
+      "Read(//c//**)",
+      "Bash(cp /tmp/postgresql-installer.exe /c/Users/Usuario/Desktop/postgresql-16-installer.exe)",
+      "Read(//c/Users/Usuario/Desktop/**)",
+      "Bash(timeout 300 ./postgresql-16-installer.exe --unattended-mode --superpassword postgres --serverport 5432 --enable-components server,pgAdmin,cli)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\createdb\" -U postgres spatagonia)",
+      "Bash(timeout 20 node server.js)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql\" -U postgres -c \"CREATE DATABASE spatagonia;\")",
+      "Bash(timeout 15 node server.js)",
+      "Bash(npm run:*)",
+      "Bash(python -m http.server 8000)",
+      "Read(//tmp/**)",
+      "Bash(python3)",
+      "Bash(timeout 30 node seed-final.js)",
+      "Bash(powershell -Command ':*)",
+      "Bash(curl -s http://localhost:8000/index.html)",
+      "Bash(curl -s http://localhost:8000/login.html)",
+      "Bash(curl -s -o /tmp/test-img.jpg -w \"Status: %{http_code}\\\\n\" http://localhost:5000/images/modelo-standard.jpg)",
+      "Bash(curl -s -w \"\\\\nStatus: %{http_code}\\\\nSize: %{size_download} bytes\\\\n\" -o /tmp/test.jpg http://localhost:5000/images/modelo-standard.jpg)",
+      "Bash(curl -s -w \"Status: %{http_code}\\\\n\" -o /tmp/test2.jpg http://localhost:8000/backend/public/images/modelo-standard.jpg)"
+    ]
+  }
+}
