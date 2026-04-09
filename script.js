@@ -298,7 +298,7 @@ async function renderProfiles() {
                 imageUrl = window.location.hostname === 'localhost' ? `http://localhost:5000${model.foto}` : model.foto;
             }
 
-            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="${model.nombre}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">` : '';
+            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="Foto de ${model.nombre}, escort en ${model.ubicacion}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">` : '';
 
             card.innerHTML = `
                 <div class="profile-image">

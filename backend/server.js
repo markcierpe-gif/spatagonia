@@ -3,6 +3,7 @@ const cors = require('cors');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Verificar JWT_SECRET en producción
@@ -11,7 +12,7 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     process.exit(1);
 }
 
-const { initializeTables } = require('./config/db');
+const { initializeTables, query } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const modelsRoutes = require('./routes/models');
 
@@ -23,7 +24,15 @@ app.use(compression());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb' }));
 
-// CORS - restringir en producción
+// Headers de seguridad y SEO
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+});
+
+// CORS
 const allowedOrigins = process.env.NODE_ENV === 'production'
     ? ['https://spatagonia.onrender.com']
     : ['http://localhost:8000', 'http://localhost:5000', 'http://127.0.0.1:8000'];
@@ -33,7 +42,7 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(null, true); // Permitir requests sin origin (mismo servidor)
+            callback(null, true);
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -42,16 +51,109 @@ app.use(cors({
 
 // Rate limiting para auth
 const authLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minuto
+    windowMs: 60 * 1000,
     max: 5,
     message: { error: 'Demasiados intentos. Espera 1 minuto.' }
+});
+
+// ===== SSR: Renderizar index.html con perfiles pre-cargados =====
+app.get('/', async (req, res) => {
+    try {
+        const htmlPath = path.join(__dirname, '..', 'index.html');
+        let html = fs.readFileSync(htmlPath, 'utf8');
+
+        // Obtener modelos de la DB
+        const result = await query(
+            `SELECT id, nombre, ubicacion, descripcion, servicios, foto, en_linea, telefono, whatsapp
+             FROM models ORDER BY created_at DESC`
+        );
+        const models = result.rows;
+
+        // Generar HTML de las cards
+        let cardsHtml = '';
+        models.forEach(model => {
+            const servicios = Array.isArray(model.servicios) ? model.servicios : [];
+            const imageUrl = model.foto || '';
+            const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="Foto de ${model.nombre}, escort en ${model.ubicacion}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : '';
+            const videoBadge = servicios.includes('Video Call') ? '<span class="video-badge">📹</span>' : '';
+
+            cardsHtml += `
+            <article class="profile-card" data-id="${model.id}" data-ubicacion="${model.ubicacion}">
+                <div class="profile-image">
+                    ${imageHtml}
+                    ${videoBadge}
+                    <span class="online-indicator ${model.en_linea ? 'active' : 'inactive'}"></span>
+                </div>
+                <div class="profile-info">
+                    <h3 class="profile-name">${model.nombre}</h3>
+                    <p class="profile-description">${model.descripcion}</p>
+                    <div class="profile-location">
+                        <span>📍 ${model.ubicacion}</span>
+                    </div>
+                </div>
+            </article>`;
+        });
+
+        // Inyectar cards en el HTML
+        html = html.replace(
+            '<!-- Tarjetas generadas por JavaScript -->',
+            cardsHtml
+        );
+
+        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+        res.send(html);
+    } catch (err) {
+        console.error('Error SSR:', err);
+        // Fallback: servir HTML estático sin SSR
+        res.sendFile(path.join(__dirname, '..', 'index.html'));
+    }
+});
+
+// ===== SITEMAP DINÁMICO =====
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const result = await query('SELECT DISTINCT ubicacion FROM models');
+        const ubicaciones = result.rows.map(r => r.ubicacion);
+        const now = new Date().toISOString().split('T')[0];
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://spatagonia.onrender.com/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>`;
+
+        ubicaciones.forEach(ub => {
+            xml += `
+  <url>
+    <loc>https://spatagonia.onrender.com/?ubicacion=${encodeURIComponent(ub)}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+        });
+
+        xml += '\n</urlset>';
+
+        res.setHeader('Content-Type', 'application/xml');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.send(xml);
+    } catch (err) {
+        res.setHeader('Content-Type', 'application/xml');
+        res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://spatagonia.onrender.com/</loc><priority>1.0</priority></url>
+</urlset>`);
+    }
 });
 
 // Servir archivos estáticos con cache
 app.use('/images', express.static(path.join(__dirname, 'public/images'), { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, '..'), { maxAge: '1h' }));
 
-// ===== RUTAS =====
+// ===== RUTAS API =====
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/models', modelsRoutes);
 
@@ -68,7 +170,6 @@ app.get('/api/seed', async (req, res) => {
     }
 
     try {
-        const { query } = require('./config/db');
         const bcrypt = require('bcryptjs');
 
         const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASS || 'Marco1981@', 10);
